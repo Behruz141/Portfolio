@@ -7,23 +7,30 @@ import ThemeToggle from "../../components/theme/ThemeToggle";
 
 const Header = () => {
   return (
-    <header className="fixed top-0 left-0 w-full bg-gray-100/80 dark:bg-[#333333]/80 backdrop-blur-md z-60 transition-colors duration-300 border-b border-gray-200 dark:border-white/10">
-      <div className="container mx-auto px-4">
-        {/* h-20: Standart balandlik */}
+    <header className="fixed top-0 left-0 w-full z-60 bg-gray-100/80 dark:bg-[#333333]/80 backdrop-blur-md border-b border-gray-200 dark:border-white/10 transition-colors duration-300">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-20">
-          <Link to="/" className="shrink-0">
+          {/* Logo */}
+          <Link
+            to="/"
+            className="shrink-0 transition-transform duration-200 hover:scale-105"
+          >
             <PortfolioLogo size="lg" />
           </Link>
 
-          <div className="hidden md:block">
+          {/* Desktop Menu (faqat md va undan katta) */}
+          <div className="hidden md:flex items-center">
             <HeaderMenu />
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Right Actions: Tema, Til va Mobil Menu */}
+          <div className="flex items-center gap-2 md:gap-4 shrink-0">
+            {/* ThemeToggle va LanguageSwitcher hamisha ko'rinadi */}
             <ThemeToggle />
             <LanguageSwitcher />
 
-            <div className="md:hidden">
+            {/* Mobile Menu (faqat md dan kichik) */}
+            <div className="md:hidden flex items-center">
               <MobileMenu />
             </div>
           </div>

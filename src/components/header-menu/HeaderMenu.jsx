@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react"; // useEffect qo'shildi
+import { useState, useEffect, useMemo } from "react";
 import { useLang } from "../i18n/useLang";
 import { useTheme } from "../theme/theme-settings/useTheme";
 
-// Glider stillari: dark va light rejimlariga qarab dinamik o'zgaradi
+// Original dizayningizdagi gradientlar saqlab qolindi
 const getGliderStyles = (dark) => ({
   about: {
     transform: "translateX(0%)",
@@ -39,54 +39,54 @@ export default function HeaderMenu() {
   const dark = theme?.dark ?? false;
 
   const [selected, setSelected] = useState("about");
-  const [animated, setAnimated] = useState(false);
+  const [isScrolling, setIsScrolling] = useState(false);
+
+  // useMemo orqali ESLint ogohlantirishini yechamiz
+  const plans = useMemo(
+    () => [
+      { id: "about", label: t("about") },
+      { id: "projects", label: t("projects") },
+      { id: "contact", label: t("contact") },
+    ],
+    [t],
+  );
 
   const gliderStyles = getGliderStyles(dark);
 
-  const plans = [
-    { id: "about", label: t("about") },
-    { id: "projects", label: t("projects") },
-    { id: "contact", label: t("contact") },
-  ];
-
-  // 1. SCROLL SPY FUNKSIYASI (FOYDALANUVCHI SKROL QILGANDA MENYUNI YANGILASH)
+  // Scroll Spy: Sahifa skroll bo'lganda menyuni kuzatish
   useEffect(() => {
-    const handleIntersect = (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setAnimated(true);
-          setSelected(entry.target.id);
-        }
-      });
-    };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (isScrolling) return; // Agar tugma bosilgan bo'lsa, avtomatik o'zgarishni vaqtincha to'xtatamiz
 
-    const observer = new IntersectionObserver(handleIntersect, {
-      root: null,
-      rootMargin: "-30% 0px -60% 0px",
-      threshold: 0,
-    });
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setSelected(entry.target.id);
+          }
+        });
+      },
+      { root: null, rootMargin: "-30% 0px -60% 0px", threshold: 0 },
+    );
 
-    // TO'G'RILANDI: plans o'rniga to'g'ridan-to'g'ri ID-larni yozdik
-    ["about", "projects", "contact"].forEach((id) => {
-      const element = document.getElementById(id);
+    plans.forEach((p) => {
+      const element = document.getElementById(p.id);
       if (element) observer.observe(element);
     });
 
     return () => observer.disconnect();
-  }, []); // Endi bu yer bo'm-bo'sh tursa ham ESLint urishmaydi!
+  }, [plans, isScrolling]);
 
-  // 2. TUGMA BOSILGANDA SAHIFANI SKROL QILISH FUNKSIYASI
   const handleSelect = (id) => {
-    if (!animated) setAnimated(true);
+    setIsScrolling(true);
     setSelected(id);
 
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+
+    // Scroll tugagach (800ms) kuzatuvni qayta yoqamiz
+    setTimeout(() => setIsScrolling(false), 800);
   };
 
   return (
@@ -101,36 +101,31 @@ export default function HeaderMenu() {
       {plans.map((plan) => (
         <label
           key={plan.id}
-          className={`relative z-10 flex min-w-64 flex-1 cursor-pointer items-center justify-center px-6 py-[0.9rem] text-[16px] font-semibold tracking-[0.3px] transition-all duration-300 ease-in-out
+          className={`relative z-10 flex min-w-64 flex-1 cursor-pointer items-center justify-center px-6 py-[0.9rem] text-[16px] font-semibold tracking-[0.3px] transition-colors duration-300
             ${
               selected === plan.id
                 ? "text-gray-800 dark:text-white"
-                : "text-gray-500 dark:text-[#e5e5e5] hover:text-gray-900 dark:hover:text-white hover:-translate-y-0.5"
+                : "text-gray-500 dark:text-[#e5e5e5] hover:text-gray-900 dark:hover:text-white"
             }`}
         >
           <input
             type="radio"
             name="plan"
-            value={plan.id}
+            className="hidden"
             checked={selected === plan.id}
             onChange={() => handleSelect(plan.id)}
-            className="hidden"
           />
           {plan.label}
         </label>
       ))}
 
-      {selected && (
-        <div
-          className="absolute bottom-0 top-0 z-0 w-1/3 rounded-2xl"
-          style={{
-            ...gliderStyles[selected],
-            transition: animated
-              ? "transform 0.5s cubic-bezier(0.37,1.95,0.66,0.56), background 0.4s ease-in-out, box-shadow 0.4s ease-in-out"
-              : "none",
-          }}
-        />
-      )}
+      {/* Glider (Slider) */}
+      <div
+        className="absolute bottom-0 top-0 z-0 w-1/3 rounded-2xl transition-all duration-500 ease-in-out"
+        style={{
+          ...gliderStyles[selected],
+        }}
+      />
     </div>
   );
 }
