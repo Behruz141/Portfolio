@@ -5,7 +5,6 @@ export default function MobileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const { t } = useLang();
 
-  // Menyu ochilganda sahifani qotirib qo'yish
   useEffect(() => {
     if (isOpen) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "unset";
@@ -18,10 +17,13 @@ export default function MobileMenu() {
   ];
 
   const handleScroll = (id) => {
-    setIsOpen(false); // Menyu bosilganda yopilishi
+    setIsOpen(false);
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
+      // scrollIntoView oldin menyuni yopib, keyin skroll qilish uchun kichik delay
+      setTimeout(() => {
+        element.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
     }
   };
 
@@ -30,7 +32,7 @@ export default function MobileMenu() {
       {/* Hamburger Tugmasi */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative z-50 p-2 text-gray-800 dark:text-white"
+        className="relative z-110 p-2 text-gray-800 dark:text-white focus:outline-none"
       >
         <div
           className={`w-6 h-0.5 bg-current transition-all duration-300 ${isOpen ? "rotate-45 translate-y-1.5" : "-translate-y-1"}`}
@@ -45,15 +47,17 @@ export default function MobileMenu() {
 
       {/* Menyuning O'zi (Overlay) */}
       <div
-        className={`fixed inset-0 z-40 bg-white/90 dark:bg-[#1e1e1e]/90 backdrop-blur-xl flex flex-col items-center justify-center gap-8 transition-all duration-500 ease-in-out ${
-          isOpen ? "opacity-100 visible" : "opacity-0 invisible"
+        className={`fixed inset-0 z-100 bg-white/95 dark:bg-[#1e1e1e]/95 backdrop-blur-2xl flex flex-col items-center justify-center gap-10 transition-all duration-500 ease-in-out ${
+          isOpen
+            ? "opacity-100 visible"
+            : "opacity-0 invisible pointer-events-none"
         }`}
       >
         {links.map((link) => (
           <button
             key={link.id}
             onClick={() => handleScroll(link.id)}
-            className="text-2xl font-bold text-gray-800 dark:text-white hover:text-amber-500 transition-colors"
+            className="text-3xl font-bold text-gray-800 dark:text-white hover:text-amber-500 transition-all active:scale-95"
           >
             {link.label}
           </button>
