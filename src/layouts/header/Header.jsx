@@ -11,7 +11,7 @@ const Header = () => {
     // Overlay z-index: 10000 bo'lgani uchun header (50) undan pastda qoladi ✓
     <header className="fixed top-0 left-0 w-full z-50 bg-gray-100/80 dark:bg-[#333333]/80 backdrop-blur-md border-b border-gray-200 dark:border-white/10 transition-colors duration-300">
       <div className="container mx-auto px-3 sm:px-6">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-center gap-10 h-20">
           {/* Logo */}
           <Link
             to="/"
@@ -26,12 +26,11 @@ const Header = () => {
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-2 md:gap-4 shrink-0">
+          <div className="flex items-center gap-5 md:gap-10 shrink-0 pl-8">
             <ThemeToggle />
             <LanguageSwitcher />
-
             {/* Mobile Menu */}
-            <div className="md:hidden flex items-center">
+            <div className="md:hidden flex items-center pl-8">
               <MobileMenu />
             </div>
           </div>

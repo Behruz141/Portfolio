@@ -1,47 +1,48 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLang } from "../i18n/useLang";
 
 export default function MobileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const { t } = useLang();
 
-  useEffect(() => {
-    document.body.style.overflow = isOpen ? "hidden" : "unset";
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen]);
+  // Menyu ochilganda asosiy oynani qotirib qo'ymaslik uchun
+  // overflow kodini olib tashladik, chunki orqa fon endi to'smaydi.
 
+  // Linklar ro'yxati (Asosiy link qo'shildi)
   const links = [
+    { id: "home", path: "/", label: t("home") || "Asosiy" }, // Tarjimada "home" bo'lmasa, "Asosiy" chiqadi
     { id: "about", label: t("about") },
     { id: "projects", label: t("projects") },
     { id: "contact", label: t("contact") },
   ];
 
-  const handleScroll = (id) => {
+  const handleNavigation = (link) => {
     setIsOpen(false);
-    setTimeout(() => {
-      const element = document.getElementById(id);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }, 400);
+
+    if (link.path) {
+      // Sahifa yangilanmasdan, eng tepaga silliq chiqadi (Smooth Scroll)
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 300);
+    } else {
+      setTimeout(() => {
+        const element = document.getElementById(link.id);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 300);
+    }
   };
 
   return (
     <div className="md:hidden">
-      {/* ─── HAMBURGER TUGMASI ───────────────────────────────────────
-          z-index inline style bilan berildi (z-[10001]) chunki
-          Tailwind standart skalasida z-110 mavjud emas             */}
+      {/* ─── HAMBURGER TUGMASI ─────────────────────────────────────── */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-label={isOpen ? "Menyuni yopish" : "Menyuni ochish"}
         className="relative flex flex-col items-center justify-center w-10 h-10 p-2"
-        style={{ zIndex: 10001 }}
+        style={{ zIndex: 10002 }}
       >
-        {/* ── 3 chiziq. Gap: 5px → umumiy balandlik 16px, markaz 8px
-            Line-1 markazi: 1px   →  +7px harakat kerak
-            Line-3 markazi: 15px  →  -7px harakat kerak            */}
         <span
           className="block bg-gray-800 dark:bg-white"
           style={{
@@ -82,56 +83,77 @@ export default function MobileMenu() {
         />
       </button>
 
-      {/* ─── FULL-SCREEN OVERLAY ─────────────────────────────────────
-          • z-index: 10000 → header (z-50 = 50) dan ancha yuqori
-          • backgroundColor: qora + 0.92 opacity → to'q qorong'i
-          • backdropFilter: 20px blur → fon xiralashadi
-          • visibility + pointerEvents → fokus/tab ni to'sadi       */}
+      {/* ─── KO'RINMAS ORQA FON (Faqat yopish uchun) ─────────────────
+          Xiralashish va qorayish butunlay olib tashlandi */}
       <div
+        onClick={() => setIsOpen(false)}
         style={{
           position: "fixed",
           inset: 0,
           zIndex: 10000,
-          backgroundColor: "rgba(6, 6, 6, 0.93)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "2.5rem",
-          /* Opacity + scale animatsiyasi */
+          backgroundColor: "transparent",
           opacity: isOpen ? 1 : 0,
           visibility: isOpen ? "visible" : "hidden",
-          transform: isOpen ? "scale(1)" : "scale(0.96)",
+        }}
+      />
+
+      {/* ─── KICHIK MENYU KARTASI ──────────────────────────────────── */}
+      <div
+        className="bg-white dark:bg-[#18181b] shadow-xl rounded-2xl"
+        style={{
+          position: "absolute",
+          top: "4rem",
+          right: "1rem",
+          zIndex: 10001,
+          width: "200px",
+          padding: "0.75rem",
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.25rem",
+          border: "0.5px solid rgba(255,255,255,0.1)", // Logodagi kabi nafis hoshiya
+          transformOrigin: "top right",
+          opacity: isOpen ? 1 : 0,
+          visibility: isOpen ? "visible" : "hidden",
+          transform: isOpen
+            ? "scale(1) translateY(0)"
+            : "scale(0.95) translateY(-10px)",
           transition:
-            "opacity 0.45s cubic-bezier(0.16,1,0.3,1), transform 0.45s cubic-bezier(0.16,1,0.3,1), visibility 0.45s",
+            "opacity 0.3s ease, transform 0.3s cubic-bezier(0.16,1,0.3,1), visibility 0.3s",
           pointerEvents: isOpen ? "auto" : "none",
         }}
       >
         {links.map((link, index) => (
           <button
             key={link.id}
-            onClick={() => handleScroll(link.id)}
-            /* Staggered kirish animatsiyasi */
+            onClick={() => handleNavigation(link)}
+            className="text-gray-800 dark:text-gray-200"
             style={{
-              fontSize: "2.5rem",
-              fontWeight: 700,
-              color: "white",
-              background: "none",
+              fontSize: "1rem",
+              fontWeight: 600,
+              padding: "0.75rem 1rem",
+              borderRadius: "0.5rem",
+              textAlign: "left",
+              background: "transparent",
               border: "none",
               cursor: "pointer",
-              letterSpacing: "-0.02em",
               transition: `
-                opacity 0.4s ease ${isOpen ? index * 0.08 : 0}s,
-                transform 0.4s cubic-bezier(0.16,1,0.3,1) ${isOpen ? index * 0.08 : 0}s,
-                color 0.2s ease
+                color 0.2s ease,
+                background-color 0.2s ease,
+                opacity 0.3s ease ${isOpen ? index * 0.05 + 0.1 : 0}s,
+                transform 0.3s ease ${isOpen ? index * 0.05 + 0.1 : 0}s
               `,
               opacity: isOpen ? 1 : 0,
-              transform: isOpen ? "translateY(0)" : "translateY(24px)",
+              transform: isOpen ? "translateX(0)" : "translateX(10px)",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#f59e0b")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "white")}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "#f59e0b"; // SIZNING AKSENT RANGINGIZ
+              e.currentTarget.style.backgroundColor =
+                "rgba(245, 158, 11, 0.05)"; // Yengil hover effekti
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "";
+              e.currentTarget.style.backgroundColor = "transparent";
+            }}
           >
             {link.label}
           </button>

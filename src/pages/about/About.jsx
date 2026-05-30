@@ -36,35 +36,9 @@ const About = () => {
             <p className="mb-8 text-lg leading-relaxed text-gray-600 dark:text-gray-400">
               {t("about_desc")}
             </p>
-
-            <div className="flex pb-8">
-              <a
-                href="#more-info"
-                className="group inline-flex items-center gap-2 rounded-xl bg-amber-500 px-6 py-3.5 font-semibold text-white 
-                  shadow-lg shadow-amber-500/20 hover:bg-amber-600 hover:shadow-xl hover:shadow-amber-500/30 
-                  transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0"
-              >
-                {t("read_more")}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M14 5l7 7m0 0l-7 7m7-7H3"
-                  />
-                </svg>
-              </a>
-            </div>
-
-            <div className="inline-block rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-4 mb-8">
+            <div className="inline-block rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-4 mb-8 mt-12">
               <p className="font-semibold text-amber-600 dark:text-amber-500">
-                💡 {t("about_skills")}
+                 {t("about_skills")}
               </p>
             </div>
           </div>
@@ -103,7 +77,7 @@ const About = () => {
       <style>{`
         .animate-fade-up { opacity: 0; animation: fadeUp 0.5s ease-out forwards; }
         .animate-fade-up-delay { opacity: 0; animation: fadeUp 0.5s ease-out 0.1s forwards; }
-        
+          
         .skill-card { 
           opacity: 0; 
           animation: fadeUp 0.5s ease-out forwards; 

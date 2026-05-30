@@ -12,7 +12,7 @@ const translations = {
     about_desc:
       "Men Full-Stack Frontend Developerman va katta loyihalarni xohishingizga ko'ra muammosiz o'zgartirib yoki noldan yaratib bera olaman. Menga shunchaki qilmoqchi yoki o'zgartirmoqchi bo'lgan saytingiz dizaynini tashlang va men uni xuddi dizayndagidek qilib jonlantirib beraman.",
     about_skills:
-      "Siz mening texnik mahoratlarimni (skills) saytning o'ng tomonida ko'rishingiz mumkin!",
+      "Siz mening texnik mahoratlarimni (skills) saytning o'ng yoki pastki tomonida ko'rishingiz mumkin!",
     read_more: "Batafsil ma'lumot",
     technical_skills: "Texnik mahoratlar",
     projects_title: "Mening professional loyihalarim",
@@ -56,7 +56,7 @@ const translations = {
     about_desc:
       "Я Full-Stack Frontend разработчик, способный без проблем создавать или изменять крупные проекты по вашему желанию. Просто отправьте мне дизайн сайта, который вы хотите создать или обновить, и я воплощу его в жизнь в точности по макету.",
     about_skills:
-      "Вы можете ознакомиться с моими техническими навыками в правой части экрана!",
+      "Вы можете ознакомиться с моими техническими навыками в правой или нижней части экрана!",
     read_more: "Подробнее",
     technical_skills: "Технические навыки",
     projects_title: "Мои профессиональные проекты",
@@ -100,7 +100,7 @@ const translations = {
     about_desc:
       "I am a Full-Stack Frontend Developer, capable of seamlessly creating or modifying large-scale projects according to your requirements. Just send me the design of the website you want to build or update, and I will bring it to life exactly as envisioned.",
     about_skills:
-      "You can check out my technical skills on the right side of the screen!",
+      "You can check out my technical skills on the right or on the bottom side of the screen!",
     read_more: "Read more",
     technical_skills: "Technical Skills",
     projects_title: "My Professional Projects",
