@@ -26,7 +26,7 @@ const Header = () => {
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-5 md:gap-10 shrink-0 pl-8">
+          <div className="flex items-center gap-5 md:gap-10 shrink-0 pl-6">
             <ThemeToggle />
             <LanguageSwitcher />
             {/* Mobile Menu */}
