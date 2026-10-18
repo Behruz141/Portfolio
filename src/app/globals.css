@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* Tailwind'ga "dark" klassi bo'yicha dark rejimni yoqamiz (<html class="dark">) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+::selection {
+  color: rgba(58, 58, 58, 0.705);
+  background-color: rgba(197, 194, 48, 0.584);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Sahifa foni. Oldin buni ThemeProvider JS orqali qo'yardi, endi CSS'da —
+   shunda sahifa yuklanishida rang "sakramaydi". */
+body {
+  background-color: #e5e5e5b7;
+}
+html.dark body {
+  background-color: #1a1a1a;
+}
+
+.container {
+  max-width: 1440px;
+  width: 100%;
+}
