@@ -184,7 +184,7 @@ export default function Contact() {
                     Telegram
                   </h4>
                   <p className="text-base font-semibold text-gray-800 dark:text-gray-200 transition-colors duration-500">
-                    @astraveyn
+                    @gvbehruz
                   </p>
                 </div>
               </a>
