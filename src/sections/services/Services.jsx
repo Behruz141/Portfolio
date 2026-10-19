@@ -102,6 +102,8 @@ export default function Services() {
     comment: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState(null);
+  const [orderSuccess, setOrderSuccess] = useState(null); // 6 xonali kodni saqlash uchun
 
   const toggleTask = (taskId) => {
     setCompletedTasks((prev) =>
@@ -128,24 +130,41 @@ export default function Services() {
       ? `-${standardDiscount.toFixed(2)}$`
       : "0$";
 
+  // BUYURTMANI BAZAGA YUBORISH
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setSubmitStatus(null);
 
     const payload = {
       ...formData,
       tier: t(selectedTier.nameKey),
       tech: selectedTier.tech,
       discount: discountAmount,
-      completedTasksCount: `${completedTasks.length}/${selectedTier.tasks.length}`,
     };
 
-    const tgText = `🚀 Yangi buyurtma!\nTarif: ${payload.tier}\nIsm: ${payload.name}\nTel: ${payload.phone}\nTG: ${payload.telegram}\nEmail: ${payload.email}\nIzoh: ${payload.comment}\nChegirma: ${payload.discount}`;
-    window.open(
-      `https://t.me/gvbehruz?text=${encodeURIComponent(tgText)}`,
-      "_blank",
-    );
-    setIsSubmitting(false);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json();
+
+      if (res.ok && result.success) {
+        setOrderSuccess(result.trackingCode); // 6 xonali kod keladi
+      } else {
+        setSubmitStatus({
+          ok: false,
+          msg: result.message || "Xatolik yuz berdi.",
+        });
+      }
+    } catch {
+      setSubmitStatus({ ok: false, msg: "Tarmoqda xatolik yuz berdi." });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -169,22 +188,18 @@ export default function Services() {
         </div>
 
         {/* 3 ta Tarif Kartasi */}
-        <div
-          className={`grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 transition-all duration-700 ease-out transform ${
-            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-          }`}
-        >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           {TIERS_DATA.map((tier) => {
             const isSelected = selectedTier.id === tier.id;
             return (
               <div
                 key={tier.id}
                 onClick={() => handleSelectTier(tier)}
-                className={`relative flex flex-col justify-between p-6 rounded-3xl cursor-pointer border backdrop-blur-md transform-gpu transition-all duration-200 ease-out will-change-transform ${
+                className={`relative flex flex-col justify-between p-6 rounded-3xl cursor-pointer border backdrop-blur-md transition-all duration-200 ${
                   isSelected
                     ? "border-amber-500 bg-amber-500/10 dark:bg-amber-500/15 shadow-lg shadow-amber-500/15 -translate-y-2 ring-2 ring-amber-500"
-                    : "border-gray-200 dark:border-white/10 bg-white/60 dark:bg-[#18181b]/60 hover:border-amber-500/50 hover:-translate-y-1 hover:shadow-md"
-                } active:scale-[0.98]`}
+                    : "border-gray-200 dark:border-white/10 bg-white/60 dark:bg-[#18181b]/60 hover:border-amber-500/50 hover:-translate-y-1"
+                }`}
               >
                 {tier.popular && (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-[11px] font-bold uppercase tracking-wider px-3 py-0.5 rounded-full shadow-sm">
@@ -198,7 +213,7 @@ export default function Services() {
                       {t(tier.badgeKey)}
                     </span>
                     <div
-                      className={`w-5 h-5 rounded-full flex items-center justify-center border transition-colors duration-150 ${
+                      className={`w-5 h-5 rounded-full flex items-center justify-center border transition-colors ${
                         isSelected
                           ? "bg-amber-500 border-amber-500 text-white"
                           : "border-gray-300 dark:border-zinc-700"
@@ -227,9 +242,9 @@ export default function Services() {
 
                 <button
                   type="button"
-                  className={`w-full py-2.5 rounded-xl font-bold text-sm transition-colors duration-150 ${
+                  className={`w-full py-2.5 rounded-xl font-bold text-sm transition-colors ${
                     isSelected
-                      ? "bg-amber-500 text-white shadow-md shadow-amber-500/25 hover:bg-amber-600"
+                      ? "bg-amber-500 text-white shadow-md shadow-amber-500/25"
                       : "bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 hover:bg-amber-500/10 hover:text-amber-500"
                   }`}
                 >
@@ -241,11 +256,7 @@ export default function Services() {
         </div>
 
         {/* Shartlar & Chegirma Kalkulyatori */}
-        <div
-          className={`p-6 md:p-8 rounded-3xl bg-white/60 dark:bg-[#18181b]/60 backdrop-blur-md border border-gray-200 dark:border-white/10 mb-8 shadow-xs transition-all duration-700 ease-out transform ${
-            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-          }`}
-        >
+        <div className="p-6 md:p-8 rounded-3xl bg-white/60 dark:bg-[#18181b]/60 backdrop-blur-md border border-gray-200 dark:border-white/10 mb-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-200 dark:border-white/10">
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -278,7 +289,6 @@ export default function Services() {
             </div>
           </div>
 
-          {/* Vazifalar */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
             {selectedTier.tasks.map((task, index) => {
               const isChecked = completedTasks.includes(task.id);
@@ -286,11 +296,11 @@ export default function Services() {
                 <div
                   key={task.id}
                   onClick={() => toggleTask(task.id)}
-                  className={`p-4 rounded-2xl border cursor-pointer transform-gpu transition-all duration-150 ease-out flex flex-col justify-between ${
+                  className={`p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between ${
                     isChecked
-                      ? "border-green-500 bg-green-500/10 dark:bg-green-500/15 shadow-sm"
-                      : "border-gray-200 dark:border-white/5 bg-gray-50/50 dark:bg-zinc-900/50 hover:border-amber-500/40 hover:-translate-y-0.5"
-                  } active:scale-[0.98]`}
+                      ? "border-green-500 bg-green-500/10 dark:bg-green-500/15"
+                      : "border-gray-200 dark:border-white/5 bg-gray-50/50 dark:bg-zinc-900/50 hover:border-amber-500/40"
+                  }`}
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <span className="text-xs font-bold text-gray-400">
@@ -324,7 +334,7 @@ export default function Services() {
                     )}
 
                     <div
-                      className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors duration-150 ${
+                      className={`w-5 h-5 rounded-md flex items-center justify-center border ${
                         isChecked
                           ? "bg-green-500 border-green-500 text-white"
                           : "border-gray-300 dark:border-zinc-700"
@@ -344,113 +354,151 @@ export default function Services() {
           </div>
         </div>
 
-        {/* BUYURTMA FORMASI */}
-        <div
-          className={`p-6 md:p-8 rounded-3xl bg-white/60 dark:bg-[#18181b]/60 backdrop-blur-md border border-gray-200 dark:border-white/10 shadow-xs transition-all duration-700 ease-out transform ${
-            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
-          }`}
-        >
-          <div className="text-center mb-6">
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {t("form_title")}
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {t("form_subtitle")}
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4 max-w-2xl mx-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1">
-                  {t("form_name")}
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder={t("form_name_ph")}
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 text-sm rounded-xl bg-white/70 dark:bg-zinc-900/70 border border-gray-300 dark:border-zinc-700 focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-colors duration-150 text-gray-900 dark:text-white"
-                />
+        {/* BUYURTMA FORMASI YOKI MUVAFFAQIYATLI YUBORILGANDAGI XABAR */}
+        <div className="p-6 md:p-8 rounded-3xl bg-white/60 dark:bg-[#18181b]/60 backdrop-blur-md border border-gray-200 dark:border-white/10 shadow-xs">
+          {orderSuccess ? (
+            <div className="text-center py-6 space-y-4">
+              <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto text-2xl">
+                🎉
               </div>
-
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Buyurtmangiz Muvaffaqiyatli Qabul Qilindi!
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300 max-w-md mx-auto">
+                Sizning maxfiy tracking kodingiz:{" "}
+                <span className="font-mono font-bold text-amber-500 bg-amber-500/10 px-3 py-1 rounded-lg">
+                  {orderSuccess}
+                </span>
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Kutish vaqtini kamaytirish va tezroq kelishish uchun darhol
+                Telegram orqali yozing!
+              </p>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1">
-                  {t("form_phone")}
-                </label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="+998 90 123 45 67"
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 text-sm rounded-xl bg-white/70 dark:bg-zinc-900/70 border border-gray-300 dark:border-zinc-700 focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-colors duration-150 text-gray-900 dark:text-white"
-                />
+                <a
+                  href={`https://t.me/gvbehruz?text=${encodeURIComponent(`Salom Behruz, men yangi buyurtma qoldirdim. Tracking kodim: ${orderSuccess}`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-white bg-[#229ED9] hover:bg-[#1b8abf] shadow-lg transition-all"
+                >
+                  Telegramda Bog`lanish 🚀
+                </a>
               </div>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1">
-                  {t("form_email")}
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="example@gmail.com"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 text-sm rounded-xl bg-white/70 dark:bg-zinc-900/70 border border-gray-300 dark:border-zinc-700 focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-colors duration-150 text-gray-900 dark:text-white"
-                />
+          ) : (
+            <>
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {t("form_title")}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {t("form_subtitle")}
+                </p>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1">
-                  {t("form_tg")}
-                </label>
-                <input
-                  type="text"
-                  placeholder="@username"
-                  value={formData.telegram}
-                  onChange={(e) =>
-                    setFormData({ ...formData, telegram: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 text-sm rounded-xl bg-white/70 dark:bg-zinc-900/70 border border-gray-300 dark:border-zinc-700 focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-colors duration-150 text-gray-900 dark:text-white"
-                />
-              </div>
-            </div>
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-4 max-w-2xl mx-auto"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1">
+                      {t("form_name")}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder={t("form_name_ph")}
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData({ ...formData, name: e.target.value })
+                      }
+                      className="w-full px-4 py-2.5 text-sm rounded-xl bg-white/70 dark:bg-zinc-900/70 border border-gray-300 dark:border-zinc-700 focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 text-gray-900 dark:text-white"
+                    />
+                  </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1">
-                {t("form_comment")}
-              </label>
-              <textarea
-                rows={3}
-                placeholder={t("form_comment_ph")}
-                value={formData.comment}
-                onChange={(e) =>
-                  setFormData({ ...formData, comment: e.target.value })
-                }
-                className="w-full px-4 py-2.5 text-sm rounded-xl bg-white/70 dark:bg-zinc-900/70 border border-gray-300 dark:border-zinc-700 focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-colors duration-150 text-gray-900 dark:text-white"
-              />
-            </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1">
+                      {t("form_phone")}
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="+998 90 123 45 67"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
+                      className="w-full px-4 py-2.5 text-sm rounded-xl bg-white/70 dark:bg-zinc-900/70 border border-gray-300 dark:border-zinc-700 focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3.5 px-6 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 active:scale-[0.99] shadow-md shadow-amber-500/20 transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-            >
-              <LuSend size={16} />
-              {isSubmitting ? t("form_sending") : t("form_submit")}
-            </button>
-          </form>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1">
+                      {t("form_email")}
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="sizningnomingiz@gmail.com"
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
+                      className="w-full px-4 py-2.5 text-sm rounded-xl bg-white/70 dark:bg-zinc-900/70 border border-gray-300 dark:border-zinc-700 focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 text-gray-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1">
+                      {t("form_tg")}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="@username"
+                      value={formData.telegram}
+                      onChange={(e) =>
+                        setFormData({ ...formData, telegram: e.target.value })
+                      }
+                      className="w-full px-4 py-2.5 text-sm rounded-xl bg-white/70 dark:bg-zinc-900/70 border border-gray-300 dark:border-zinc-700 focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1">
+                    {t("form_comment")}
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder={t("form_comment_ph")}
+                    value={formData.comment}
+                    onChange={(e) =>
+                      setFormData({ ...formData, comment: e.target.value })
+                    }
+                    className="w-full px-4 py-2.5 text-sm rounded-xl bg-white/70 dark:bg-zinc-900/70 border border-gray-300 dark:border-zinc-700 focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 text-gray-900 dark:text-white"
+                  />
+                </div>
+
+                {submitStatus && (
+                  <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-semibold">
+                    {submitStatus.msg}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-3.5 px-6 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 shadow-md shadow-amber-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  <LuSend size={16} />
+                  {isSubmitting ? t("form_sending") : t("form_submit")}
+                </button>
+              </form>
+            </>
+          )}
         </div>
       </div>
     </section>
