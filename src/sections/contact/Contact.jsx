@@ -21,9 +21,8 @@ export default function Contact() {
 
   return (
     <section
-      id="contact"
       ref={sectionRef}
-      className="w-full flex flex-col items-center py-24 px-4 md:px-0 bg-transparent select-none overflow-hidden"
+      className="w-full flex flex-col items-center py-12 px-4 md:px-0 bg-transparent select-none overflow-hidden"
     >
       <div
         className={`text-center mb-16 max-w-2xl transform transition-all duration-800 ease-out ${

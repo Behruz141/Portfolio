@@ -9,9 +9,10 @@ export default function MobileMenu() {
 
   const links = [
     { id: "home", path: "/", label: t("home") || "Asosiy" },
-    { id: "about", label: t("about") },
-    { id: "projects", label: t("projects") },
-    { id: "contact", label: t("contact") },
+    { id: "about", label: t("about") || "Haqimda" },
+    { id: "projects", label: t("projects") || "Loyihalar" },
+    { id: "services", label: t("services") || "Xizmatlar" },
+    { id: "contact", label: t("contact") || "Aloqa" },
   ];
 
   const handleNavigation = (link) => {
@@ -142,7 +143,7 @@ export default function MobileMenu() {
               transform: isOpen ? "translateX(0)" : "translateX(10px)",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#f59e0b"; 
+              e.currentTarget.style.color = "#f59e0b";
               e.currentTarget.style.backgroundColor =
                 "rgba(245, 158, 11, 0.05)";
             }}

@@ -8,12 +8,11 @@
   background-color: rgba(197, 194, 48, 0.584);
 }
 
-html {
-  scroll-behavior: smooth;
+html, body {
+  scroll-behavior: smooth !important;
+  scroll-padding-top: 5.5rem;
 }
 
-/* Sahifa foni. Oldin buni ThemeProvider JS orqali qo'yardi, endi CSS'da —
-   shunda sahifa yuklanishida rang "sakramaydi". */
 body {
   background-color: #e5e5e5b7;
 }
