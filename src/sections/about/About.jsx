@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useInView } from "@/hooks/useInView";
+import { useEffect, useState } from "react";
 import { siteConfig } from "@/config/site";
 import { useLang } from "../../components/i18n/useLang";
 import {
@@ -73,6 +74,16 @@ const SKILLS = [
 const About = () => {
   const { t } = useLang();
   const [sectionRef, isVisible] = useInView();
+  const [isOpen, setIsOpen] = useState(siteConfig.availableForWork);
+
+  useEffect(() => {
+    fetch("/api/status", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d.isOpenForWork === "boolean") setIsOpen(d.isOpenForWork);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div
@@ -88,15 +99,25 @@ const About = () => {
                 : "opacity-0 translate-y-16"
             }`}
           >
-            {siteConfig.availableForWork && (
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                <span className="relative flex h-2 w-2">
+            <div
+              className={`mb-6 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
+                isOpen
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400"
+              }`}
+            >
+              <span className="relative flex h-2 w-2">
+                {isOpen && (
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75"></span>
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-                </span>
-                {t("status_open")}
-              </div>
-            )}
+                )}
+                <span
+                  className={`relative inline-flex h-2 w-2 rounded-full ${
+                    isOpen ? "bg-emerald-500" : "bg-red-500"
+                  }`}
+                ></span>
+              </span>
+              {isOpen ? t("status_open") : t("status_busy")}
+            </div>
             <h1 className="mb-6 text-4xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100 sm:text-5xl">
               {t("about_greeting")}
             </h1>

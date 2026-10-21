@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { useInView } from "@/hooks/useInView";
 import { LanguageContext } from "@/components/i18n/LanguageContext";
+import { createClient } from "@supabase/supabase-js";
 import {
   LuCheck,
   LuSparkles,
@@ -11,6 +12,12 @@ import {
   LuExternalLink,
   LuCopy,
 } from "react-icons/lu";
+
+// Supabase ulanishi to'g'ridan-to'g'ri Clientda
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+);
 
 const TIERS_DATA = [
   {
@@ -89,6 +96,15 @@ const TIERS_DATA = [
   },
 ];
 
+function generateTrackingCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
 export default function Services() {
   const { t } = useContext(LanguageContext);
   const [sectionRef, isVisible] = useInView();
@@ -106,6 +122,18 @@ export default function Services() {
   const [submitStatus, setSubmitStatus] = useState(null);
   const [trackingCode, setTrackingCode] = useState(null);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        const savedCode = window.localStorage.getItem("my_order_tracking_code");
+        if (savedCode) {
+          setTrackingCode(savedCode);
+        }
+      } catch {}
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const toggleTask = (taskId) => {
     setCompletedTasks((prev) =>
@@ -132,52 +160,82 @@ export default function Services() {
       ? `-${standardDiscount.toFixed(2)}$`
       : "0$";
 
-  // Buyurtmani yuborish logikasi
+  // Buyurtmani to'g'ridan-to'g'ri Supabase'ga yozish
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitStatus(null);
-    setTrackingCode(null);
-
-    const payload = {
-      ...formData,
-      tier: t(selectedTier.nameKey),
-      tech: selectedTier.tech,
-      discount: discountAmount,
-    };
 
     try {
-      const res = await fetch("/api/order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
+      // 1. Anti-spam tekshiruvi
+      const { data: existingOrder } = await supabase
+        .from("orders")
+        .select("id, status")
+        .or(
+          `email.eq.${formData.email.trim()},phone.eq.${formData.phone.trim()}`,
+        )
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (res.ok && data.success) {
-        setTrackingCode(data.tracking_code);
-        setSubmitStatus({
-          ok: true,
-          msg: "Buyurtmangiz muvaffaqiyatli qabul qilindi!",
-        });
-        setFormData({
-          name: "",
-          phone: "",
-          email: "",
-          telegram: "",
-          comment: "",
-        });
-        setCompletedTasks([]);
-      } else {
+      if (
+        existingOrder &&
+        existingOrder.status !== "completed" &&
+        existingOrder.status !== "rejected"
+      ) {
         setSubmitStatus({
           ok: false,
-          msg: data.message || "Xatolik yuz berdi.",
+          msg: "Siz allaqachon buyurtma bergansiz! Buyurtmangiz holati hal bo'lishini kuting.",
         });
+        setIsSubmitting(false);
+        return;
       }
-    } catch {
+
+      // 2. 6 xonali kod yaratish
+      const newCode = generateTrackingCode();
+
+      // 3. Bazaga kiritish
+      const { error: insertError } = await supabase.from("orders").insert([
+        {
+          tracking_code: newCode,
+          name: formData.name.trim(),
+          phone: formData.phone.trim(),
+          email: formData.email.trim(),
+          telegram: formData.telegram.trim() || "",
+          comment: formData.comment.trim() || "",
+          tier: t(selectedTier.nameKey),
+          tech: selectedTier.tech,
+          discount: discountAmount,
+          status: "pending",
+        },
+      ]);
+
+      if (insertError) {
+        throw new Error(insertError.message);
+      }
+
+      // Muvaffaqiyatli saqlanganda
+      setTrackingCode(newCode);
+      try {
+        localStorage.setItem("my_order_tracking_code", newCode);
+      } catch {}
+
+      setSubmitStatus({
+        ok: true,
+        msg: "Buyurtmangiz muvaffaqiyatli qabul qilindi!",
+      });
+      setFormData({
+        name: "",
+        phone: "",
+        email: "",
+        telegram: "",
+        comment: "",
+      });
+      setCompletedTasks([]);
+    } catch (err) {
       setSubmitStatus({
         ok: false,
-        msg: "Server bilan bog'lanishda xatolik yuz berdi.",
+        msg: "Xatolik: " + (err?.message || "Ulanishda muammo yuz berdi"),
       });
     } finally {
       setIsSubmitting(false);
@@ -403,34 +461,39 @@ export default function Services() {
           </div>
 
           {trackingCode ? (
-            <div className="p-6 rounded-2xl bg-green-500/10 border border-green-500/30 text-center space-y-4">
-              <div className="text-green-600 dark:text-green-400 font-bold text-base">
-                🎉 Buyurtmangiz muvaffaqiyatli qabul qilindi!
+            <div className="p-6 md:p-8 rounded-3xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/30 text-center space-y-4">
+              <div className="text-amber-600 dark:text-amber-400 font-extrabold text-lg">
+                🎉 Rahmat! Buyurtmangiz qabul qilingan.
               </div>
-              <p className="text-xs text-zinc-600 dark:text-zinc-300">
-                Sizning maxfiy tracking kodingiz (uni saqlab qo`ying, faqat
-                sizga ko`rinadi):
+              <p className="text-xs md:text-sm text-zinc-600 dark:text-zinc-300 max-w-lg mx-auto">
+                Siz allaqachon buyurtma bergansiz. Buyurtmangiz tayyor
+                bo`lishini kuting! Sizning maxfiy tracking kodingiz:
               </p>
-              <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-xl bg-zinc-900 text-amber-400 font-mono text-xl font-bold tracking-widest">
-                {trackingCode}
+
+              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-zinc-900 text-amber-400 font-mono text-2xl font-black tracking-widest border border-amber-500/30 shadow-lg">
+                #{trackingCode}
                 <button
                   onClick={copyCode}
-                  className="text-xs text-white hover:text-amber-400 flex items-center gap-1 bg-zinc-800 px-3 py-1.5 rounded-lg"
+                  className="text-xs text-white hover:text-amber-400 flex items-center gap-1.5 bg-zinc-800 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
                 >
                   <LuCopy size={14} /> {copied ? "Nusxalandi!" : "Nusxalash"}
                 </button>
               </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Kutish vaqtini kamaytirish uchun Telegram orqali menga
-                yozishingiz mumkin:{" "}
-                <a
-                  href="https://t.me/gvbehruz"
-                  target="_blank"
-                  className="text-amber-500 font-bold underline"
-                >
-                  @gvbehruz
-                </a>
-              </p>
+
+              <div className="pt-2">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Kutish vaqtini kamaytirish uchun Telegram orqali
+                  bog`lanishingiz mumkin:{" "}
+                  <a
+                    href="https://t.me/gvbehruz"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-amber-500 font-bold hover:underline"
+                  >
+                    @gvbehruz
+                  </a>
+                </p>
+              </div>
             </div>
           ) : (
             <form

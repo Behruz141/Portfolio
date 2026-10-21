@@ -1,51 +1,60 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { createClient } from "@supabase/supabase-js";
+import { isAdmin } from "@/lib/adminAuth";
 
-// Ma'lumotlar saqlanadigan vaqtinchalik fayl yo'li
-const filePath = path.join(process.cwd(), "src/config/status.json");
+export const dynamic = "force-dynamic";
 
-// Agar fayl bo'lmasa, dastlabki holatni yozib qo'yamiz
-function getData() {
+function getClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { persistSession: false } },
+  );
+}
+
+// Hamma o'qiy oladi
+export async function GET() {
   try {
-    if (!fs.existsSync(filePath)) {
-      const initialData = {
-        isOpenForWork: true,
-        viewsCount: 120,
-        ordersCount: 5,
-      };
-      fs.writeFileSync(filePath, JSON.stringify(initialData));
-      return initialData;
-    }
-    const fileData = fs.readFileSync(filePath, "utf8");
-    return JSON.parse(fileData);
+    const { data, error } = await getClient()
+      .from("site_settings")
+      .select("is_open_for_work")
+      .eq("id", 1)
+      .maybeSingle();
+
+    if (error) throw error;
+    return NextResponse.json({ isOpenForWork: data?.is_open_for_work ?? true });
   } catch {
-    return { isOpenForWork: true, viewsCount: 100, ordersCount: 3 };
+    return NextResponse.json({ isOpenForWork: true });
   }
 }
 
-// GET: Holatni o'qib olish
-export async function GET() {
-  const data = getData();
-  return NextResponse.json(data);
-}
-
-// POST: Admin panel orqali holatni o'zgartirish
+// Faqat admin parol bilan o'zgartira oladi
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const currentData = getData();
+    if (!isAdmin(request)) {
+      return NextResponse.json(
+        { success: false, error: "Ruxsat yo'q" },
+        { status: 401 },
+      );
+    }
 
-    const updatedData = {
-      ...currentData,
-      ...body,
-    };
+    const { isOpenForWork } = await request.json();
+    if (typeof isOpenForWork !== "boolean") {
+      return NextResponse.json(
+        { success: false, error: "Noto'g'ri qiymat" },
+        { status: 400 },
+      );
+    }
 
-    fs.writeFileSync(filePath, JSON.stringify(updatedData, null, 2));
-    return NextResponse.json({ success: true, data: updatedData });
-  } catch (error) {
+    const { error } = await getClient()
+      .from("site_settings")
+      .upsert({ id: 1, is_open_for_work: isOpenForWork });
+
+    if (error) throw error;
+    return NextResponse.json({ success: true, isOpenForWork });
+  } catch (err) {
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: err.message },
       { status: 500 },
     );
   }

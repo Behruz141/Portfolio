@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 
-// 6 xonali tasodifiy tracking kod generatori
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
 function generateTrackingCode() {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let code = "#";
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // O'xshash harflar (O, 0, I, 1) olib tashlangan
+  let code = "";
   for (let i = 0; i < 6; i++) {
     code += chars.charAt(Math.floor(Math.random() * chars.length));
   }
@@ -13,59 +15,82 @@ function generateTrackingCode() {
 
 export async function POST(request) {
   try {
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            ".env.local faylida Supabase URL yoki KEY topilmadi. Serverni qayta ishga tushiring!",
+        },
+        { status: 500 },
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false },
+    });
+
     const body = await request.json();
     const { name, phone, email, telegram, comment, tier, tech, discount } =
       body;
 
-    // 1. Shu email yoki telefon bilan oldin buyurtma berilganmi tekshiramiz
-    const { data: existingUser } = await supabase
+    // 1. Anti-Spam tekshiruvi
+    const { data: existingOrder, error: checkError } = await supabase
       .from("orders")
       .select("id, status")
       .or(`email.eq.${email},phone.eq.${phone}`)
-      .single();
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (existingUser) {
-      if (
-        existingUser.status !== "completed" &&
-        existingUser.status !== "rejected"
-      ) {
-        return NextResponse.json(
-          {
-            success: false,
-            message:
-              "Siz allaqachon buyurtma bergansiz! Buyurtmangiz bajarilishini kuting.",
-          },
-          { status: 400 },
-        );
-      }
+    if (checkError) {
+      console.error("Supabase check error:", checkError);
     }
 
-    // 2. Unikal 6 xonali tracking kod generatsiya qilamiz
-    let tracking_code = generateTrackingCode();
-    let isUnique = false;
+    if (
+      existingOrder &&
+      existingOrder.status !== "completed" &&
+      existingOrder.status !== "rejected"
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Siz allaqachon buyurtma bergansiz! Buyurtmangiz holati hal bo'lishini kuting.",
+        },
+        { status: 400 },
+      );
+    }
 
-    while (!isUnique) {
-      const { data } = await supabase
+    // 2. 6 xonali unikal kod
+    let trackingCode = generateTrackingCode();
+    let isUnique = false;
+    let attempts = 0;
+
+    while (!isUnique && attempts < 5) {
+      attempts++;
+      const { data: codeCheck } = await supabase
         .from("orders")
         .select("id")
-        .eq("tracking_code", tracking_code)
-        .single();
-      if (!data) {
+        .eq("tracking_code", trackingCode)
+        .maybeSingle();
+
+      if (!codeCheck) {
         isUnique = true;
       } else {
-        tracking_code = generateTrackingCode();
+        trackingCode = generateTrackingCode();
       }
     }
 
-    // 3. Bazaga yangi buyurtmani qo'shamiz
-    const { error } = await supabase.from("orders").insert([
+    // 3. Bazaga kiritish
+    const { error: insertError } = await supabase.from("orders").insert([
       {
-        tracking_code,
+        tracking_code: trackingCode,
         name,
         phone,
         email,
-        telegram,
-        comment,
+        telegram: telegram || "",
+        comment: comment || "",
         tier,
         tech,
         discount,
@@ -73,12 +98,23 @@ export async function POST(request) {
       },
     ]);
 
-    if (error) throw error;
+    if (insertError) {
+      console.error("Insert error:", insertError);
+      return NextResponse.json(
+        { success: false, message: "Baza xatoligi: " + insertError.message },
+        { status: 500 },
+      );
+    }
 
-    return NextResponse.json({ success: true, tracking_code });
+    return NextResponse.json({
+      success: true,
+      tracking_code: trackingCode,
+      message: "Buyurtmangiz muvaffaqiyatli qabul qilindi!",
+    });
   } catch (err) {
+    console.error("Route error:", err);
     return NextResponse.json(
-      { success: false, message: err.message },
+      { success: false, message: "Server xatoligi: " + (err?.message || err) },
       { status: 500 },
     );
   }
